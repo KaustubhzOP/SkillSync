@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "EXP NO. 6 - JWT Authentication & User Roles",
+    "description": "Postman Collection for EXP NO.6: Implement authentication and user roles with JWT (Registration, Login, JWT authentication, protected routes, and Admin/User roles)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Check API Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": []
+        },
+        "description": "Verifies that the JWT Authentication API is running."
+      }
+    },
+    {
+      "name": "1. Test Registration (User)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Kaustubh\",\n  \"email\": \"Kaustubh@gmail.com\",\n  \"password\": \"123456\",\n  \"role\": \"user\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/auth/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Registers a new user with standard 'user' role."
+      }
+    },
+    {
+      "name": "2. Register an Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Admin\",\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"admin123\",\n  \"role\": \"admin\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/auth/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Registers an administrator account with 'admin' role."
+      }
+    },
+    {
+      "name": "3. Test User Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"Kaustubh@gmail.com\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "auth", "login"]
+        },
+        "description": "Authenticates user and returns JWT token."
+      }
+    },
+    {
+      "name": "4. Test Protected Route (User Dashboard)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "PASTE_USER_JWT_TOKEN_HERE",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/user/dashboard",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "user", "dashboard"]
+        },
+        "description": "Access protected dashboard with JWT token. Accessible by both User and Admin."
+      }
+    },
+    {
+      "name": "5. Test Admin Route with User Account (403 Expected)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "PASTE_USER_JWT_TOKEN_HERE",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/user/admin",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "user", "admin"]
+        },
+        "description": "Attempts to access admin page using user token. Expected output: 403 Forbidden - Access denied. You do not have permission."
+      }
+    },
+    {
+      "name": "6. Test Admin Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"admin123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "auth", "login"]
+        },
+        "description": "Authenticates admin credentials and returns admin JWT token."
+      }
+    },
+    {
+      "name": "7. Test Admin Route with Admin Account (200 OK)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "PASTE_ADMIN_JWT_TOKEN_HERE",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/user/admin",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "user", "admin"]
+        },
+        "description": "Access admin route using admin token. Expected output: 200 OK - Welcome Admin! You can access this page."
+      }
+    }
+  ]
+}

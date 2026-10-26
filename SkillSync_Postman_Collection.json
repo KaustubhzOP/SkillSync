@@ -1,0 +1,97 @@
+{
+  "info": {
+    "name": "SkillSync REST APIs - EXP NO. 5",
+    "description": "Postman collection for testing SkillSync Secure REST APIs (Auth, JWT, User Profile, Student CRUD)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. User Registration",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Student\",\n  \"email\": \"student@gmail.com\",\n  \"password\": \"student123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/users/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "users", "register"]
+        },
+        "description": "Register a new user profile with input validation and bcrypt password hashing."
+      }
+    },
+    {
+      "name": "2. User Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"student@gmail.com\",\n  \"password\": \"student123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/users/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "users", "login"]
+        },
+        "description": "Authenticates user credentials and returns a signed JWT authentication token."
+      }
+    },
+    {
+      "name": "3. Get User Profile (Protected)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "PASTE_YOUR_JWT_TOKEN_HERE",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/users/profile",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "users", "profile"]
+        },
+        "description": "Protected profile route requiring a valid Bearer JWT token."
+      }
+    },
+    {
+      "name": "4. Get All Students",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/students",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "students"]
+        },
+        "description": "Fetch list of all registered students with offered and wanted skills."
+      }
+    }
+  ]
+}
