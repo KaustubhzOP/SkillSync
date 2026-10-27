@@ -12,6 +12,8 @@ function Login() {
     email: "",
     password: "",
     role: "user",
+    skills: "",
+    wantedSkills: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -189,6 +191,40 @@ function Login() {
                 className="w-full border border-gray-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
+
+            {isRegister && (
+              <>
+                <div>
+                  <label className="flex justify-between items-center text-xs font-semibold text-gray-600 uppercase mb-1">
+                    <span>Skills You Offer</span>
+                    <span className="text-gray-400 font-normal lowercase">(comma separated)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="skills"
+                    value={formData.skills}
+                    onChange={handleChange}
+                    placeholder="e.g. React, Node.js, Python"
+                    className="w-full border border-gray-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex justify-between items-center text-xs font-semibold text-gray-600 uppercase mb-1">
+                    <span>Skills You Want to Learn</span>
+                    <span className="text-gray-400 font-normal lowercase">(comma separated)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="wantedSkills"
+                    value={formData.wantedSkills}
+                    onChange={handleChange}
+                    placeholder="e.g. Docker, Machine Learning, Rust"
+                    className="w-full border border-gray-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+              </>
+            )}
 
             <button
               type="submit"

@@ -1,5 +1,6 @@
 import express from "express";
 import Student from "../models/Student.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
@@ -16,12 +17,54 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET ALL STUDENTS
+// GET ALL STUDENTS (Includes all registered users and seeded students)
 router.get("/", async (req, res) => {
   try {
-    const students = await Student.find();
+    const [students, users] = await Promise.all([
+      Student.find().lean(),
+      User.find({}, "name email skills wantedSkills createdAt updatedAt").lean(),
+    ]);
 
-    res.status(200).json(students);
+    // Combine by lowercase email so registered users always show on the website
+    const studentMap = new Map();
+
+    // 1. Add all documents from Student collection
+    students.forEach((s) => {
+      if (s.email) {
+        studentMap.set(s.email.toLowerCase(), {
+          _id: s._id,
+          name: s.name,
+          email: s.email,
+          skills: s.skills || [],
+          wantedSkills: s.wantedSkills || [],
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
+        });
+      }
+    });
+
+    // 2. Overwrite / merge with registered User profiles so user updates are live
+    users.forEach((u) => {
+      if (u.email) {
+        const existing = studentMap.get(u.email.toLowerCase());
+        studentMap.set(u.email.toLowerCase(), {
+          _id: u._id,
+          name: u.name || existing?.name,
+          email: u.email,
+          skills: u.skills && u.skills.length > 0 ? u.skills : (existing?.skills || []),
+          wantedSkills: u.wantedSkills && u.wantedSkills.length > 0 ? u.wantedSkills : (existing?.wantedSkills || []),
+          createdAt: u.createdAt || existing?.createdAt,
+          updatedAt: u.updatedAt || existing?.updatedAt,
+        });
+      }
+    });
+
+    // Return in reverse chronological order so newly registered users appear first!
+    const result = Array.from(studentMap.values()).sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    );
+
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
       message: error.message,

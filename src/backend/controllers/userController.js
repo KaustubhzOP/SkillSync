@@ -1,7 +1,18 @@
 import User from "../models/User.js";
+import Student from "../models/Student.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { validationResult } from "express-validator";
+
+const parseSkills = (val, defaultVal = []) => {
+  if (Array.isArray(val)) {
+    return val.map((s) => String(s).trim()).filter(Boolean);
+  }
+  if (typeof val === "string" && val.trim().length > 0) {
+    return val.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  return defaultVal;
+};
 
 // REGISTER USER
 export const registerUser = async (req, res) => {
@@ -11,7 +22,7 @@ export const registerUser = async (req, res) => {
   }
 
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, skills, wantedSkills } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -19,16 +30,41 @@ export const registerUser = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const userSkills = parseSkills(skills, ["React", "Node.js", "MongoDB"]);
+    const userWantedSkills = parseSkills(wantedSkills, ["Python", "Docker"]);
 
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
+      role: role || "user",
+      skills: userSkills,
+      wantedSkills: userWantedSkills,
     });
+
+    // Automatically sync registered user to Student collection
+    await Student.findOneAndUpdate(
+      { email: user.email },
+      {
+        name: user.name,
+        email: user.email,
+        skills: user.skills,
+        wantedSkills: user.wantedSkills,
+      },
+      { upsert: true, new: true }
+    );
 
     res.status(201).json({
       message: "User registered successfully",
       userId: user._id,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        skills: user.skills,
+        wantedSkills: user.wantedSkills,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -57,13 +93,21 @@ export const loginUser = async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET || "your_super_secret_jwt_key_skillsync_2026",
+      process.env.JWT_SECRET || "mysecretkey123",
       { expiresIn: "1h" }
     );
 
     res.status(200).json({
       message: "Login successful",
       token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        skills: user.skills || [],
+        wantedSkills: user.wantedSkills || [],
+      },
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -98,6 +142,18 @@ export const updateSkills = async (req, res) => {
     if (wantedSkills !== undefined) user.wantedSkills = wantedSkills;
 
     await user.save();
+
+    // Synchronize changes to Student collection so website Students directory updates immediately
+    await Student.findOneAndUpdate(
+      { email: user.email },
+      {
+        name: user.name,
+        email: user.email,
+        skills: user.skills,
+        wantedSkills: user.wantedSkills,
+      },
+      { upsert: true, new: true }
+    );
 
     res.status(200).json({
       message: "Skills updated successfully",

@@ -1,15 +1,24 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
 import { API_BASE_URL } from "../services/api";
+import { Link } from "react-router-dom";
 
 function Dashboard() {
+  const { user: authUser, updateUser } = useAuth();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [newOfferedSkill, setNewOfferedSkill] = useState("");
   const [newWantedSkill, setNewWantedSkill] = useState("");
   const [saving, setSaving] = useState(false);
+  const [notification, setNotification] = useState("");
 
   const token = localStorage.getItem("token");
+
+  const showNotification = (msg) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(""), 3500);
+  };
 
   // Fetch user profile on load
   useEffect(() => {
@@ -27,11 +36,15 @@ function Dashboard() {
         if (!response.ok) throw new Error("Failed to fetch profile");
         const data = await response.json();
         setUser(data);
+        if (updateUser) updateUser(data);
       } catch (_err) {
         // Fallback to local user
         try {
           const stored = localStorage.getItem("user");
-          if (stored) setUser(JSON.parse(stored));
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setUser(parsed);
+          }
         } catch (_e) {}
       } finally {
         setLoading(false);
@@ -42,7 +55,10 @@ function Dashboard() {
 
   // Sync skills with backend
   async function syncSkills(updatedSkills, updatedWantedSkills) {
-    if (!token) return;
+    if (!token) {
+      showNotification("Please sign in to save your skills.");
+      return;
+    }
     setSaving(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/users/skills`, {
@@ -56,7 +72,22 @@ function Dashboard() {
           wantedSkills: updatedWantedSkills,
         }),
       });
-      if (!response.ok) throw new Error("Failed to update skills");
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to update skills");
+      }
+
+      const data = await response.json();
+      const updatedUser = {
+        ...(user || {}),
+        skills: data.skills || updatedSkills,
+        wantedSkills: data.wantedSkills || updatedWantedSkills,
+      };
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      if (updateUser) updateUser(updatedUser);
+      showNotification("Skills successfully updated and synced!");
     } catch (err) {
       alert("Error saving skills: " + err.message);
     } finally {
@@ -67,42 +98,64 @@ function Dashboard() {
   // Add Offered Skill
   const handleAddOfferedSkill = (e) => {
     e.preventDefault();
-    if (!newOfferedSkill.trim() || !user) return;
+    if (!token) {
+      showNotification("Please sign in to add skills.");
+      return;
+    }
     const skillName = newOfferedSkill.trim();
-    if (user.skills && user.skills.includes(skillName)) return;
+    if (!skillName) return;
 
-    const updatedSkills = [...(user.skills || []), skillName];
-    setUser({ ...user, skills: updatedSkills });
+    const currentSkills = user?.skills || [];
+    if (currentSkills.some((s) => s.toLowerCase() === skillName.toLowerCase())) {
+      showNotification(`"${skillName}" is already in your offered skills.`);
+      return;
+    }
+
+    const updatedSkills = [...currentSkills, skillName];
+    const updatedUser = { ...(user || {}), skills: updatedSkills };
+    setUser(updatedUser);
     setNewOfferedSkill("");
-    syncSkills(updatedSkills, user.wantedSkills || []);
+    syncSkills(updatedSkills, user?.wantedSkills || []);
   };
 
   // Remove Offered Skill
   const handleRemoveOfferedSkill = (skillToRemove) => {
     if (!user) return;
     const updatedSkills = (user.skills || []).filter((s) => s !== skillToRemove);
-    setUser({ ...user, skills: updatedSkills });
+    const updatedUser = { ...user, skills: updatedSkills };
+    setUser(updatedUser);
     syncSkills(updatedSkills, user.wantedSkills || []);
   };
 
   // Add Wanted Skill
   const handleAddWantedSkill = (e) => {
     e.preventDefault();
-    if (!newWantedSkill.trim() || !user) return;
+    if (!token) {
+      showNotification("Please sign in to add skills.");
+      return;
+    }
     const skillName = newWantedSkill.trim();
-    if (user.wantedSkills && user.wantedSkills.includes(skillName)) return;
+    if (!skillName) return;
 
-    const updatedWanted = [...(user.wantedSkills || []), skillName];
-    setUser({ ...user, wantedSkills: updatedWanted });
+    const currentWanted = user?.wantedSkills || [];
+    if (currentWanted.some((s) => s.toLowerCase() === skillName.toLowerCase())) {
+      showNotification(`"${skillName}" is already in your wanted skills.`);
+      return;
+    }
+
+    const updatedWanted = [...currentWanted, skillName];
+    const updatedUser = { ...(user || {}), wantedSkills: updatedWanted };
+    setUser(updatedUser);
     setNewWantedSkill("");
-    syncSkills(user.skills || [], updatedWanted);
+    syncSkills(user?.skills || [], updatedWanted);
   };
 
   // Remove Wanted Skill
   const handleRemoveWantedSkill = (skillToRemove) => {
     if (!user) return;
     const updatedWanted = (user.wantedSkills || []).filter((s) => s !== skillToRemove);
-    setUser({ ...user, wantedSkills: updatedWanted });
+    const updatedUser = { ...user, wantedSkills: updatedWanted };
+    setUser(updatedUser);
     syncSkills(user.skills || [], updatedWanted);
   };
 
@@ -140,6 +193,32 @@ function Dashboard() {
             </span>
           )}
         </div>
+
+        {notification && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-lg flex items-center justify-between shadow-sm animate-fade-in">
+            <span>{notification}</span>
+            <button
+              onClick={() => setNotification("")}
+              className="text-blue-500 hover:text-blue-700 font-bold text-xs ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {!token && (
+          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl flex items-center justify-between">
+            <div className="text-sm">
+              <span className="font-bold">Not Signed In:</span> You are browsing in guest mode. Please sign in or register to save skills to your profile and appear in the student directory.
+            </div>
+            <Link
+              to="/login"
+              className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition"
+            >
+              Sign In / Register
+            </Link>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-16 text-gray-500 font-medium">Loading Dashboard...</div>

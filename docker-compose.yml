@@ -12,6 +12,9 @@ services:
       - MONGO_URI=mongodb+srv://2024kaustubhpatil_db_user:j4GDpoSrgIjf8ckh@cluster0.agtioku.mongodb.net/skillsync?retryWrites=true&w=majority
       - LOCAL_MONGO_URI=mongodb://host.docker.internal:27017/fsd_jwt
       - JWT_SECRET=mysecretkey123
+    volumes:
+      - .:/app
+      - /app/node_modules
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

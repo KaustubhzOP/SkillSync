@@ -2,13 +2,25 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Student from "../models/Student.js";
 
 const router = express.Router();
+
+// Helper to sanitize skills
+const parseSkills = (val, defaultVal = []) => {
+  if (Array.isArray(val)) {
+    return val.map((s) => String(s).trim()).filter(Boolean);
+  }
+  if (typeof val === "string" && val.trim().length > 0) {
+    return val.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  return defaultVal;
+};
 
 // REGISTER
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, skills, wantedSkills } = req.body;
 
     const existingUser = await User.findOne({ email });
 
@@ -20,12 +32,29 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const userSkills = parseSkills(skills, ["React", "Node.js", "MongoDB"]);
+    const userWantedSkills = parseSkills(wantedSkills, ["Python", "Docker"]);
+
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       role: role || "user",
+      skills: userSkills,
+      wantedSkills: userWantedSkills,
     });
+
+    // Automatically sync registered user to Student collection for immediate website display
+    await Student.findOneAndUpdate(
+      { email: user.email },
+      {
+        name: user.name,
+        email: user.email,
+        skills: user.skills,
+        wantedSkills: user.wantedSkills,
+      },
+      { upsert: true, new: true }
+    );
 
     res.status(201).json({
       message: "User registered successfully",
@@ -34,6 +63,8 @@ router.post("/register", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        skills: user.skills,
+        wantedSkills: user.wantedSkills,
       },
     });
   } catch (error) {
@@ -84,6 +115,8 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        skills: user.skills || [],
+        wantedSkills: user.wantedSkills || [],
       },
     });
   } catch (error) {
